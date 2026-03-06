@@ -49,22 +49,36 @@ Configuration StudentBaseline {
     #Import-DscResource -ModuleName ActivedirectoryDSC
 
 
+
     Node $AllNodes.NodeName {
 
-        # Ensure C:\TEST exists
-        File TestFolder {
-            DestinationPath = 'C:\TEST'
-            Type            = 'Directory'
-            Ensure          = 'Present'
-        }
+       # Use the Computer resource from ComputerManagementDsc to set computer name
+       Computer SetName {
+            Name = $AllNodes.ComputerName
+       }
+       # Set The Timezone
+       TimeZone SetTimeZone {
+            IsSingleInstance = 'Yes'
+            TimeZone = $AllNodes.TimeZone
+       }
 
-        # Ensure C:\TEST\test.txt exists with content
-        File TestFile {
-            DestinationPath = 'C:\TEST\test.txt'
-            Type            = 'File'
-            Ensure          = 'Present'
-            Contents        = 'Proof-of-life: DSC created this file.'
-            DependsOn       = '[File]TestFolder'
+       Service WindowsTime {
+            Name = 'W32Time'
+            State = 'Running'
+            StartupType = 'Automatic'
+            DependsOn = '[TimeZone]SetTimeZone'
+       }
+
+       WindowsFeature ADD {
+            Name = 'AD-Domain-Services'
+            Ensure = 'Present'
+       }
+
+       WindowsFeature RSAT-ADDS {
+            Name 'RSAT-ADD-Tools'
+            Ensure = 'Present'
+            DependsOn = '[WindowsFeature]ADDS'
+       }
         }
 
     }
